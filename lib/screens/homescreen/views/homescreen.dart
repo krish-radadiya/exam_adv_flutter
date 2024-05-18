@@ -5,6 +5,10 @@ import '../../auctionpage/views/aucton_screen.dart';
 import '../model/model.dart';
 
 class Homescreen extends StatefulWidget {
+  final String userId;
+
+  Homescreen({required this.userId});
+
   @override
   _HomescreenState createState() => _HomescreenState();
 }
@@ -88,6 +92,18 @@ class _HomescreenState extends State<Homescreen> {
                     double.tryParse(_productPriceController.text) ?? 0.0;
                 String productCategory = _productCategoryController.text;
 
+                if (productName.isEmpty ||
+                    productCategory.isEmpty ||
+                    productPrice <= 0) {
+                  // Show an error message if the input is invalid
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content:
+                            Text('Please fill all fields with valid values')),
+                  );
+                  return;
+                }
+
                 if (product == null) {
                   // Insert the product into the database
                   await DBHelper().insertProduct(Product(
@@ -105,15 +121,12 @@ class _HomescreenState extends State<Homescreen> {
                   ));
                 }
 
-                // Clear the text fields
                 _productNameController.clear();
                 _productPriceController.clear();
                 _productCategoryController.clear();
 
-                // Fetch and update the products list
                 _fetchProducts();
 
-                // Close the dialog
                 Navigator.of(context).pop();
               },
             ),
@@ -129,47 +142,45 @@ class _HomescreenState extends State<Homescreen> {
   }
 
   void _addToFavorites(Product product) async {
-    await FirestoreHelper().updateFavoriteStatus(product.id.toString(), true);
+    await FirestoreHelper()
+        .addFavoriteProduct(widget.userId, product.id.toString());
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('${product.name} added to favorites'),
-        duration: Duration(seconds: 2),
+        duration: const Duration(seconds: 2),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Home Screen'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.shopping_cart),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) =>
+                        FavoriteScreen(userId: widget.userId)),
+              );
+            },
+          ),
+        ],
       ),
-      home: Scaffold(
-        appBar: AppBar(
-          title: const Text('Home Screen'),
-          actions: [
-            IconButton(
-              icon: Icon(Icons.shopping_cart),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => FavoriteScreen()),
-                );
-              },
-            ),
-          ],
-        ),
-        body: _products == null
-            ? const Center(child: CircularProgressIndicator())
-            : _products!.isEmpty
-                ? const Center(child: Text('NO DATA FOUND...'))
-                : ListView.builder(
-                    itemCount: _products!.length,
-                    itemBuilder: (context, index) {
-                      final product = _products![index];
-                      return ListTile(
+      body: _products == null
+          ? const Center(child: CircularProgressIndicator())
+          : _products!.isEmpty
+              ? const Center(child: Text('NO DATA FOUND...'))
+              : ListView.builder(
+                  itemCount: _products!.length,
+                  itemBuilder: (context, index) {
+                    final product = _products![index];
+                    return Card(
+                      child: ListTile(
                         title: Text(product.name),
                         subtitle: Text(
                             'Category: ${product.category}, Price: ${product.price}'),
@@ -177,28 +188,32 @@ class _HomescreenState extends State<Homescreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: <Widget>[
                             IconButton(
-                              icon: Icon(Icons.edit),
+                              icon: const Icon(Icons.edit),
                               onPressed: () =>
                                   _showAlertDialog(context, product: product),
                             ),
                             IconButton(
-                              icon: Icon(Icons.favorite_border),
+                              icon: const Icon(
+                                Icons.favorite_border,
+                              ),
                               onPressed: () => _addToFavorites(product),
                             ),
                             IconButton(
-                              icon: Icon(Icons.delete),
+                              icon: const Icon(
+                                Icons.delete,
+                              ),
                               onPressed: () => _deleteProduct(product.id!),
                             ),
                           ],
                         ),
-                      );
-                    },
-                  ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () => _showAlertDialog(context),
-          tooltip: 'Add Product',
-          child: const Icon(Icons.add),
-        ),
+                      ),
+                    );
+                  },
+                ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showAlertDialog(context),
+        tooltip: 'Add Product',
+        child: const Icon(Icons.add),
       ),
     );
   }

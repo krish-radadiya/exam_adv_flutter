@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-
 import '../screens/homescreen/model/model.dart';
 
 class FirestoreHelper {
@@ -22,7 +21,6 @@ class FirestoreHelper {
     }
   }
 
-  // Get favorite products for a specific user
   Future<List<Product>> getFavoriteProducts(String userId) async {
     QuerySnapshot snapshot = await _firestore
         .collection('users')
@@ -40,5 +38,33 @@ class FirestoreHelper {
       }
     }
     return favoriteProducts;
+  }
+
+  Future<void> addFavoriteProduct(String userId, String productId) async {
+    try {
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('favorites')
+          .doc(productId)
+          .set({});
+    } catch (e) {
+      print('Error adding favorite product: $e');
+      throw e;
+    }
+  }
+
+  Future<void> removeFavoriteProduct(String userId, String productId) async {
+    try {
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('favorites')
+          .doc(productId)
+          .delete();
+    } catch (e) {
+      print('Error removing favorite product: $e');
+      throw e;
+    }
   }
 }

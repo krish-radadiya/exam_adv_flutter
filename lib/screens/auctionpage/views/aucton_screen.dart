@@ -20,15 +20,17 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
       appBar: AppBar(
         title: const Text('Favorite Products'),
       ),
-      body: StreamBuilder<List<Product>>(
-        stream: firestoreHelper.getFavoriteProducts(widget.userId),
+      body: FutureBuilder<List<Product>>(
+        future: firestoreHelper.getFavoriteProducts(widget.userId),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(child: Text('No favorite products found.'));
           } else {
-            List<Product> products = snapshot.data ?? [];
+            List<Product> products = snapshot.data!;
             return ListView.builder(
               itemCount: products.length,
               itemBuilder: (context, index) {
@@ -37,9 +39,11 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
                   title: Text(product.name),
                   subtitle: Text('Price: ${product.price}'),
                   trailing: IconButton(
-                    icon: Icon(product.isFavorite
-                        ? Icons.favorite
-                        : Icons.favorite_border),
+                    icon: Icon(
+                      product.isFavorite
+                          ? Icons.favorite
+                          : Icons.favorite_border,
+                    ),
                     onPressed: () {
                       _toggleFavoriteStatus(
                           product.id.toString(), !product.isFavorite);
@@ -56,9 +60,13 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
 
   void _toggleFavoriteStatus(String productId, bool isFavorite) async {
     try {
-      await firestoreHelper.updateFavoriteStatus(productId, isFavorite);
+      if (isFavorite) {
+        await firestoreHelper.addFavoriteProduct(widget.userId, productId);
+      } else {
+        await firestoreHelper.removeFavoriteProduct(widget.userId, productId);
+      }
+      setState(() {});
     } catch (e) {
-      // Handle error, if any
       print('Error toggling favorite status: $e');
     }
   }
