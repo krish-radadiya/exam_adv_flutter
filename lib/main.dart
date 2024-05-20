@@ -17,12 +17,14 @@ Future<void> main() async {
     debugShowCheckedModeBanner: false,
     getPages: [
       GetPage(
-        name: '/',
+        name: '/splash',
         page: () => const Splashscreen(),
       ),
       GetPage(
-        name: '/home',
-        page: () => Homescreen(userId: ''),
+        name: '/',
+        page: () => Homescreen(
+          userId: '',
+        ),
       ),
       GetPage(
         name: '/auction',
